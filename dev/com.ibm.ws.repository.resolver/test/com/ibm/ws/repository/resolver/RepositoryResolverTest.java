@@ -159,22 +159,6 @@ public class RepositoryResolverTest {
         assertThat(distanceMap.entrySet(), hasSize(2));
     }
 
-//    @Test
-//    public void simpleTest() throws RepositoryResolutionException {
-//        EsaResourceWritable featurePw = WritableResourceFactory.createEsa(null);
-//        featurePw.setProvideFeature("com.ibm.websphere.appserver.passwordUtilities-1.0");
-//        featurePw.addRequireFeatureWithTolerates("com.ibm.websphere.appserver.javax.connector-1.6", Collections.<String> emptyList());
-//
-//        FeatureResolver resolver = new FeatureResolverImpl();
-//        KernelResolverRepository repo = new KernelResolverRepository(null, null);
-//
-//
-//        Result result = resolver.resolveFeatures(repo, Arrays.asList("com.example.featureB"), Collections.<String> emptySet(), false);
-//
-//        assertThat(result, is(result().withResolvedFeatures("com.example.featureA-1.1", "com.example.featureB")));
-//
-//    }
-
     /*
      * Dependency map
      * com.ibm.websphere.appserver.passwordUtilities-1.0
@@ -226,6 +210,7 @@ public class RepositoryResolverTest {
     }
 
     /*
+     * This test is from FeatureResolverTest, ignore.
      * Dependency map
      * Feature B -> Feature A-1,0, tolerates 1.1
      * Feature C -> Feature A-1.1
@@ -262,14 +247,21 @@ public class RepositoryResolverTest {
 
     }
 
-    // Dependency map
-    // Feature X -> Feature I 1.0
-    // Feature Y -> Feature I 1.1 tolerate 1.0
+    /*
+     * Test the resoleAsSet method with 2 level feature dependencies
+     *
+     * Dependency chart
+     * Feature X -> Feature I 1.0
+     * Feature Y -> Feature I 1.1 tolerate 1.0
+     *
+     * Expected: Feature X, Feature Y, Feature I1.0
+     * Actual: Feature X, Feature Y, Feature I1.0
+     * This test case works as expected.
+     */
 
-    @SuppressWarnings("unchecked")
     @Test
     public void myTestNewXandY() throws RepositoryResolutionException {
-
+        // initialize all of the features
         EsaResourceWritable featureX = WritableResourceFactory.createEsa(null);
         featureX.setProvideFeature("com.example.featureX-1.0");
         featureX.addRequireFeatureWithTolerates("com.example.featureI-1.0", Collections.<String> emptyList());
@@ -290,19 +282,30 @@ public class RepositoryResolverTest {
         featureI11.setVisibility(Visibility.PUBLIC);
         featureI11.setSingleton("true");
 
+        // build repository and resolve the features
         RepositoryResolver resolver = testResolver().withFeature(featureX, featureY, featureI10, featureI11).build();
         resolver.resolveAsSet(Arrays.asList(featureX.getProvideFeature(), featureY.getProvideFeature()));
 
+        // print the output resolved features
         for (String name : resolver.resolvedFeatures.keySet()) {
             System.out.println(name);
         }
     }
+    /*
+     * Test the resolveAsSet method with 3 level feature dependencies
+     *
+     * Dependency map
+     * Feature A -> Feature X -> Feature I 1.0
+     * Feature B -> Feature Y -> Feature I 1.1 tolerate 1.0
+     *
+     * Expected: Feature A, Feature B, Feature X, Feature Y, Feature I1,0
+     * Actual: com.ibm.ws.repository.resolver.RepositoryResolutionException: Requirement not met: resource=com.example.featureA-1.0
+     * Requirement not met: resource=com.example.featureB-1.0
+     */
 
-    // Dependency map
-    // Feature A -> Feature X -> Feature I 1.0
-    // Feature B -> Feature Y -> Feature I 1.1 tolerate 1.0
     @Test
     public void myTestNew() throws RepositoryResolutionException {
+        // initialize all the features
         EsaResourceWritable featureA = WritableResourceFactory.createEsa(null);
         featureA.setProvideFeature("com.example.featureA-1.0");
         featureA.addRequireFeatureWithTolerates("com.example.featureX-1.0", Collections.<String> emptyList());
@@ -333,9 +336,11 @@ public class RepositoryResolverTest {
         featureI11.setVisibility(Visibility.PUBLIC);
         featureI11.setSingleton("true");
 
+        // build the repository and resolve the features
         RepositoryResolver resolver = testResolver().withFeature(featureA, featureB, featureX, featureY, featureI10, featureI11).build();
         resolver.resolveAsSet(Arrays.asList(featureA.getProvideFeature(), featureB.getProvideFeature()));
 
+        // print the resolved features symbolic name output
         for (String name : resolver.resolvedFeatures.keySet()) {
             System.out.println(name);
         }
