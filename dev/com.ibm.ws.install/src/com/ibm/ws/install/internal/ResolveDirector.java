@@ -62,6 +62,7 @@ import com.ibm.ws.repository.connections.RestRepositoryConnectionProxy;
 import com.ibm.ws.repository.connections.ZipRepositoryConnection;
 import com.ibm.ws.repository.connections.liberty.MainRepository;
 import com.ibm.ws.repository.connections.liberty.ProductInfoProductDefinition;
+import com.ibm.ws.repository.exceptions.RepositoryBackendAssetException;
 import com.ibm.ws.repository.exceptions.RepositoryBackendException;
 import com.ibm.ws.repository.exceptions.RepositoryBackendIOException;
 import com.ibm.ws.repository.exceptions.RepositoryException;
@@ -73,6 +74,7 @@ import com.ibm.ws.repository.resources.AttachmentResource;
 import com.ibm.ws.repository.resources.EsaResource;
 import com.ibm.ws.repository.resources.RepositoryResource;
 import com.ibm.ws.repository.resources.SampleResource;
+import com.ibm.ws.repository.transport.model.Asset;
 
 import wlp.lib.extract.SelfExtractor;
 
@@ -463,6 +465,14 @@ class ResolveDirector extends AbstractDirector {
 
             throw ExceptionUtils.create(e, featureNamesProcessed, product.getInstallDir(), false, isOpenLiberty);
         } catch (RepositoryException e) {
+            if (e instanceof RepositoryBackendAssetException) {
+                List<String> invalidFeatures = new ArrayList<>();
+                for (Asset asset : ((RepositoryBackendAssetException) e).getInvalidAssets()) {
+                    invalidFeatures.add(asset.getName());
+                }
+                throw ExceptionUtils.create(e, invalidFeatures, false, proxy, defaultRepo(), isOpenLiberty);
+
+            }
             throw ExceptionUtils.create(e, featureNamesProcessed, false, proxy, defaultRepo(), isOpenLiberty);
         }
         List<List<RepositoryResource>> installResourcesCollection = new ArrayList<List<RepositoryResource>>(installResources.size());

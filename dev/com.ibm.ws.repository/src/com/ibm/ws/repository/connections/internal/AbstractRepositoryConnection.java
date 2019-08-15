@@ -27,6 +27,7 @@ import com.ibm.ws.repository.common.enums.Visibility;
 import com.ibm.ws.repository.connections.ProductDefinition;
 import com.ibm.ws.repository.connections.RepositoryConnection;
 import com.ibm.ws.repository.connections.RestRepositoryConnection;
+import com.ibm.ws.repository.exceptions.RepositoryBackendAssetException;
 import com.ibm.ws.repository.exceptions.RepositoryBackendException;
 import com.ibm.ws.repository.exceptions.RepositoryBackendIOException;
 import com.ibm.ws.repository.exceptions.RepositoryBackendRequestFailureException;
@@ -162,8 +163,19 @@ public abstract class AbstractRepositoryConnection implements RepositoryConnecti
             // We may end up with duplicate assets from these two calls but that is ok as we are using the ResourceList as the collection of resources which removes duplicates
             Collection<Asset> assets = client.getAssets(types, productIds, visibilityForMassiveFilter, productVersions);
             assets.addAll(client.getAssetsWithUnboundedMaxVersion(types, productIds, visibilityForMassiveFilter));
+
+            List<Asset> invalidAssets = new ArrayList<>();
             for (Asset asset : assets) {
-                resources.add(ResourceFactory.getInstance().createResourceFromAsset(asset, this));
+                // old resources.add(ResourceFactory.getInstance().createResourceFromAsset(asset, this));
+                // new:
+                try {
+                    resources.add(ResourceFactory.getInstance().createResourceFromAsset(asset, this));
+                } catch (RepositoryBackendException e) {
+                    invalidAssets.add(asset);
+                }
+            }
+            if (invalidAssets.size() > 0) {
+                throw new RepositoryBackendAssetException("Failed to load assets", invalidAssets);
             }
         } catch (IOException ioe) {
             throw new RepositoryBackendIOException("Failed to obtain the assets from massive", ioe, this);
